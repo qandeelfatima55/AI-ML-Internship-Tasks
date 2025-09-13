@@ -1,0 +1,91 @@
+# ============================================
+# Week 3 Task: Fake News Detection with Python
+# ============================================
+# This project trains a model to check if a news article is Fake or Real.
+# Steps:
+# 1. Load dataset
+# 2. Preprocess text (clean & vectorize)
+# 3. Train ML model
+# 4. Test and evaluate
+# 5. Build small function for predictions
+# (Optional) GUI for user
+# ============================================
+
+# ---- Step 1: Import libraries we need ----
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# ---- Step 2: Load the dataset ----
+# We are using Kaggle's Fake and Real News dataset
+fake = pd.read_csv("Fake.csv")
+true = pd.read_csv("True.csv")
+
+# Add labels: 0 = Fake, 1 = Real
+fake["label"] = 0
+true["label"] = 1
+
+# Combine into one dataset
+data = pd.concat([fake, true], axis=0).reset_index(drop=True)
+data = data[["text", "label"]]   # we only need the article text and its label
+
+print("Dataset shape:", data.shape)
+print(data.head())
+
+# ---- Step 3: Preprocess text ----
+X = data["text"]     # input features (news articles)
+y = data["label"]    # target labels (fake/real)
+
+# Convert text into numerical form using TF-IDF
+vectorizer = TfidfVectorizer(stop_words="english", max_df=0.7)
+X_vec = vectorizer.fit_transform(X)
+
+# ---- Step 4: Split into training and testing ----
+X_train, X_test, y_train, y_test = train_test_split(
+    X_vec, y, test_size=0.2, random_state=42
+)
+
+# ---- Step 5: Train model ----
+# Logistic Regression works well for text classification
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+# ---- Step 6: Test the model ----
+y_pred = model.predict(X_test)
+
+print("\nModel Performance:")
+print("Accuracy:", round(accuracy_score(y_test, y_pred), 4))
+print("Precision:", round(precision_score(y_test, y_pred), 4))
+print("Recall:", round(recall_score(y_test, y_pred), 4))
+print("F1 Score:", round(f1_score(y_test, y_pred), 4))
+
+# ---- Step 7: Confusion Matrix ----
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(5,4))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
+            xticklabels=["Fake", "Real"],
+            yticklabels=["Fake", "Real"])
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Confusion Matrix")
+plt.show()
+
+# ---- Step 8: Prediction function ----
+def check_news(text):
+    """
+    Input: news article text
+    Output: Fake News ❌ or Real News ✅
+    """
+    vec = vectorizer.transform([text])
+    pred = model.predict(vec)[0]
+    return "✅ Real News" if pred == 1 else "❌ Fake News"
+
+# Quick test
+print("\nSome example predictions:")
+print(check_news("The government announced new policies today."))
+print(check_news("Shocking! Aliens have landed in New York!!!"))
